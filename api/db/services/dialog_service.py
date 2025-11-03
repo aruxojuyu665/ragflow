@@ -103,7 +103,7 @@ class DialogService(CommonService):
     @classmethod
     @DB.connection_context()
     def get_by_tenant_ids(cls, joined_tenant_ids, user_id, page_number, items_per_page, orderby, desc, keywords, parser_id=None):
-        from api.db.db_models import User
+        from api.db.db_models import Tenant
 
         fields = [
             cls.model.id,
@@ -124,26 +124,26 @@ class DialogService(CommonService):
             cls.model.kb_ids,
             cls.model.icon,
             cls.model.status,
-            User.nickname,
-            User.avatar.alias("tenant_avatar"),
+            Tenant.name.alias('tenant_name'),
+            
             cls.model.update_time,
             cls.model.create_time,
         ]
         if keywords:
             dialogs = (
                 cls.model.select(*fields)
-                .join(User, on=(cls.model.tenant_id == User.id))
+                .join(Tenant, on=(cls.model.tenant_id == Tenant.id))
                 .where(
-                    (cls.model.tenant_id.in_(joined_tenant_ids) | (cls.model.tenant_id == user_id)) & (cls.model.status == StatusEnum.VALID.value),
+                    (cls.model.tenant_id.in_(joined_tenant_ids)) & (cls.model.status == StatusEnum.VALID.value),
                     (fn.LOWER(cls.model.name).contains(keywords.lower())),
                 )
             )
         else:
             dialogs = (
                 cls.model.select(*fields)
-                .join(User, on=(cls.model.tenant_id == User.id))
+                .join(Tenant, on=(cls.model.tenant_id == Tenant.id))
                 .where(
-                    (cls.model.tenant_id.in_(joined_tenant_ids) | (cls.model.tenant_id == user_id)) & (cls.model.status == StatusEnum.VALID.value),
+                    (cls.model.tenant_id.in_(joined_tenant_ids)) & (cls.model.status == StatusEnum.VALID.value),
                 )
             )
         if parser_id:

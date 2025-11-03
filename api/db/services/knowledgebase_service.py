@@ -18,7 +18,7 @@ from datetime import datetime
 from peewee import fn, JOIN
 
 from api.db import StatusEnum, TenantPermission
-from api.db.db_models import DB, Document, Knowledgebase, User, UserTenant, UserCanvas
+from api.db.db_models import DB, Document, Knowledgebase, Tenant, User, UserTenant, UserCanvas
 from api.db.services.common_service import CommonService
 from common.time_utils import current_timestamp, datetime_format
 
@@ -157,23 +157,18 @@ class KnowledgebaseService(CommonService):
             cls.model.chunk_num,
             cls.model.parser_id,
             cls.model.embd_id,
-            User.nickname,
-            User.avatar.alias('tenant_avatar'),
+            Tenant.name.alias('tenant_name'),
             cls.model.update_time
         ]
         if keywords:
-            kbs = cls.model.select(*fields).join(User, on=(cls.model.tenant_id == User.id)).where(
-                ((cls.model.tenant_id.in_(joined_tenant_ids) & (cls.model.permission ==
-                                                                TenantPermission.TEAM.value)) | (
-                    cls.model.tenant_id == user_id))
+            kbs = cls.model.select(*fields).join(Tenant, on=(cls.model.tenant_id == Tenant.id)).where(
+                (cls.model.tenant_id.in_(joined_tenant_ids))
                 & (cls.model.status == StatusEnum.VALID.value),
                 (fn.LOWER(cls.model.name).contains(keywords.lower()))
             )
         else:
-            kbs = cls.model.select(*fields).join(User, on=(cls.model.tenant_id == User.id)).where(
-                ((cls.model.tenant_id.in_(joined_tenant_ids) & (cls.model.permission ==
-                                                                TenantPermission.TEAM.value)) | (
-                    cls.model.tenant_id == user_id))
+            kbs = cls.model.select(*fields).join(Tenant, on=(cls.model.tenant_id == Tenant.id)).where(
+                (cls.model.tenant_id.in_(joined_tenant_ids))
                 & (cls.model.status == StatusEnum.VALID.value)
             )
         if parser_id:
@@ -386,9 +381,7 @@ class KnowledgebaseService(CommonService):
         if name:
             kbs = kbs.where(cls.model.name == name)
         kbs = kbs.where(
-            ((cls.model.tenant_id.in_(joined_tenant_ids) & (cls.model.permission ==
-                                                            TenantPermission.TEAM.value)) | (
-                cls.model.tenant_id == user_id))
+            (cls.model.tenant_id.in_(joined_tenant_ids))
             & (cls.model.status == StatusEnum.VALID.value)
         )
 

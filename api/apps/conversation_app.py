@@ -154,7 +154,15 @@ def rm():
 def list_conversation():
     dialog_id = request.args["dialog_id"]
     try:
-        if not DialogService.query(tenant_id=current_user.id, id=dialog_id):
+        # Get user's tenant_id
+        tenants = TenantService.get_joined_tenants_by_user_id(current_user.id)
+        if not tenants:
+            return get_json_result(data=False, message="Tenant not found.", code=settings.RetCode.OPERATING_ERROR)
+        tenant_ids = [t["tenant_id"] for t in tenants]
+        
+        # Check if dialog belongs to user's tenant
+        dialog = DialogService.query(id=dialog_id)
+        if not dialog or (dialog[0].tenant_id not in tenant_ids):
             return get_json_result(data=False, message="Only owner of dialog authorized for this operation.", code=settings.RetCode.OPERATING_ERROR)
         convs = ConversationService.query(dialog_id=dialog_id, order_by=ConversationService.model.create_time, reverse=True)
 

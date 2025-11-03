@@ -21,7 +21,7 @@ from api.db.services.dialog_service import DialogService
 from api.db import StatusEnum
 from api.db.services.tenant_llm_service import TenantLLMService
 from api.db.services.knowledgebase_service import KnowledgebaseService
-from api.db.services.user_service import TenantService, UserTenantService
+from api.db.services.user_service import TenantService, UserTenantService, UserService
 from api import settings
 from api.utils.api_utils import server_error_response, get_data_error_result, validate_request
 from common.misc_utils import get_uuid
@@ -76,7 +76,12 @@ def set_dialog():
                     message="Parameter '{}' is not used".format(p["key"]))
 
     try:
-        e, tenant = TenantService.get_by_id(current_user.id)
+        # Get users tenant_id from user_tenant table
+        tenants = TenantService.get_joined_tenants_by_user_id(current_user.id)
+        if not tenants:
+            return get_data_error_result(message="Tenant not found!")
+        tenant_id = tenants[0]["tenant_id"]
+        e, tenant = TenantService.get_by_id(tenant_id)
         if not e:
             return get_data_error_result(message="Tenant not found!")
         kbs = KnowledgebaseService.get_by_ids(req.get("kb_ids", []))
@@ -89,7 +94,7 @@ def set_dialog():
         if not dialog_id:
             dia = {
                 "id": get_uuid(),
-                "tenant_id": current_user.id,
+                "tenant_id": tenant_id,
                 "name": name,
                 "kb_ids": req.get("kb_ids", []),
                 "description": description,
@@ -150,19 +155,40 @@ def get_kb_names(kb_ids):
     return ids, nms
 
 
+def _get_user_tenant_ids(user_id):
+    """Helper function to get tenant IDs for a user.
+    
+    Args:
+        user_id: User ID
+        
+    Returns:
+        List of tenant IDs or empty list if no tenants found
+    """
+    tenants = TenantService.get_joined_tenants_by_user_id(user_id)
+    return [t["tenant_id"] for t in tenants] if tenants else []
+
+
 @manager.route('/list', methods=['GET'])  # noqa: F821
 @login_required
 def list_dialogs():
+    keywords = request.args.get("keywords", "")
+    page_number = int(request.args.get("page", 1))
+    items_per_page = int(request.args.get("page_size", 30))
+    orderby = request.args.get("orderby", "create_time")
+    if request.args.get("desc", "true").lower() == "false":
+        desc = False
+    else:
+        desc = True
     try:
-        diags = DialogService.query(
-            tenant_id=current_user.id,
-            status=StatusEnum.VALID.value,
-            reverse=True,
-            order_by=DialogService.model.create_time)
-        diags = [d.to_dict() for d in diags]
+        tenant_ids = _get_user_tenant_ids(current_user.id)
+        if not tenant_ids:
+            return get_json_result(data={"dialogs": [], "total": 0})
+        diags, total = DialogService.get_by_tenant_ids(
+            tenant_ids, current_user.id, page_number,
+            items_per_page, orderby, desc, keywords)
         for d in diags:
             d["kb_ids"], d["kb_names"] = get_kb_names(d["kb_ids"])
-        return get_json_result(data=diags)
+        return get_json_result(data={"dialogs": diags, "total": total})
     except Exception as e:
         return server_error_response(e)
 
@@ -184,9 +210,7 @@ def list_dialogs_next():
     owner_ids = req.get("owner_ids", [])
     try:
         if not owner_ids:
-            # tenants = TenantService.get_joined_tenants_by_user_id(current_user.id)
-            # tenants = [tenant["tenant_id"] for tenant in tenants]
-            tenants = [] # keep it here
+            tenants = _get_user_tenant_ids(current_user.id)
             dialogs, total = DialogService.get_by_tenant_ids(
                 tenants, current_user.id, page_number,
                 items_per_page, orderby, desc, keywords, parser_id)

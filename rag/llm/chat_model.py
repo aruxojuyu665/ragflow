@@ -552,8 +552,15 @@ class AzureChat(Base):
     _FACTORY_NAME = "Azure-OpenAI"
 
     def __init__(self, key, model_name, base_url, **kwargs):
-        api_key = json.loads(key).get("api_key", "")
-        api_version = json.loads(key).get("api_version", "2024-02-01")
+        # Handle both string and JSON format for API key
+        try:
+            key_data = json.loads(key)
+            api_key = key_data.get("api_key", "")
+            api_version = key_data.get("api_version", "2024-02-01")
+        except (json.JSONDecodeError, TypeError):
+            # If key is a plain string, use it directly
+            api_key = key
+            api_version = "2024-02-01"
         super().__init__(key, model_name, base_url, **kwargs)
         self.client = AzureOpenAI(api_key=api_key, azure_endpoint=base_url, api_version=api_version)
         self.model_name = model_name
@@ -772,8 +779,14 @@ class VolcEngineChat(Base):
         model_name is for display only
         """
         base_url = base_url if base_url else "https://ark.cn-beijing.volces.com/api/v3"
-        ark_api_key = json.loads(key).get("ark_api_key", "")
-        model_name = json.loads(key).get("ep_id", "") + json.loads(key).get("endpoint_id", "")
+        # Handle both string and JSON format for API key
+        try:
+            key_data = json.loads(key)
+            ark_api_key = key_data.get("ark_api_key", "")
+            model_name = key_data.get("ep_id", "") + key_data.get("endpoint_id", "")
+        except (json.JSONDecodeError, TypeError):
+            # If key is a plain string, use it directly
+            ark_api_key = key
         super().__init__(ark_api_key, model_name, base_url, **kwargs)
 
 
@@ -992,9 +1005,14 @@ class HunyuanChat(Base):
         from tencentcloud.common import credential
         from tencentcloud.hunyuan.v20230901 import hunyuan_client
 
-        key = json.loads(key)
-        sid = key.get("hunyuan_sid", "")
-        sk = key.get("hunyuan_sk", "")
+        # Handle both string and JSON format for API key
+        try:
+            key_data = json.loads(key)
+            sid = key_data.get("hunyuan_sid", "")
+            sk = key_data.get("hunyuan_sk", "")
+        except (json.JSONDecodeError, TypeError):
+            # If key is a plain string, cannot extract credentials
+            raise ValueError("HunyuanChat requires JSON format key with hunyuan_sid and hunyuan_sk")
         cred = credential.Credential(sid, sk)
         self.model_name = model_name
         self.client = hunyuan_client.HunyuanClient(cred, "")
@@ -1091,9 +1109,14 @@ class BaiduYiyanChat(Base):
 
         import qianfan
 
-        key = json.loads(key)
-        ak = key.get("yiyan_ak", "")
-        sk = key.get("yiyan_sk", "")
+        # Handle both string and JSON format for API key
+        try:
+            key_data = json.loads(key)
+            ak = key_data.get("yiyan_ak", "")
+            sk = key_data.get("yiyan_sk", "")
+        except (json.JSONDecodeError, TypeError):
+            # If key is a plain string, cannot extract credentials
+            raise ValueError("BaiduYiyanChat requires JSON format key with yiyan_ak and yiyan_sk")
         self.client = qianfan.ChatCompletion(ak=ak, sk=sk)
         self.model_name = model_name.lower()
 
@@ -1141,10 +1164,15 @@ class GoogleChat(Base):
 
         from google.oauth2 import service_account
 
-        key = json.loads(key)
-        access_token = json.loads(base64.b64decode(key.get("google_service_account_key", "")))
-        project_id = key.get("google_project_id", "")
-        region = key.get("google_region", "")
+        # Handle both string and JSON format for API key
+        try:
+            key_data = json.loads(key)
+            access_token = json.loads(base64.b64decode(key_data.get("google_service_account_key", "")))
+            project_id = key_data.get("google_project_id", "")
+            region = key_data.get("google_region", "")
+        except (json.JSONDecodeError, TypeError):
+            # If key is a plain string, cannot extract credentials
+            raise ValueError("GoogleChat requires JSON format key with google_service_account_key, google_project_id, and google_region")
 
         scopes = ["https://www.googleapis.com/auth/cloud-platform"]
         self.model_name = model_name
@@ -1421,12 +1449,25 @@ class LiteLLMBase(ABC):
 
         # Factory specific fields
         if self.provider == SupportedLiteLLMProvider.Bedrock:
-            self.bedrock_ak = json.loads(key).get("bedrock_ak", "")
-            self.bedrock_sk = json.loads(key).get("bedrock_sk", "")
-            self.bedrock_region = json.loads(key).get("bedrock_region", "")
+            # Handle both string and JSON format for API key
+            try:
+                key_data = json.loads(key)
+                self.bedrock_ak = key_data.get("bedrock_ak", "")
+                self.bedrock_sk = key_data.get("bedrock_sk", "")
+                self.bedrock_region = key_data.get("bedrock_region", "")
+            except (json.JSONDecodeError, TypeError):
+                # If key is a plain string, cannot extract credentials
+                raise ValueError("Bedrock requires JSON format key with bedrock_ak, bedrock_sk, and bedrock_region")
         elif self.provider == SupportedLiteLLMProvider.OpenRouter:
-            self.api_key = json.loads(key).get("api_key", "")
-            self.provider_order = json.loads(key).get("provider_order", "")
+            # Handle both string and JSON format for API key
+            try:
+                key_data = json.loads(key)
+                self.api_key = key_data.get("api_key", "")
+                self.provider_order = key_data.get("provider_order", "")
+            except (json.JSONDecodeError, TypeError):
+                # If key is a plain string, use it directly
+                self.api_key = key
+                self.provider_order = ""
 
     def _get_delay(self):
         """Calculate retry delay time"""

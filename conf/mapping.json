@@ -156,46 +156,47 @@
         }
       },
       {
-        "dense_vector": {
+        "knn_vector_512": {
           "match": "*_512_vec",
           "mapping": {
-            "type": "dense_vector",
-            "index": true,
-            "similarity": "cosine",
-            "dims": 512
+            "type": "knn_vector",
+            "dimension": 512
           }
         }
       },
       {
-        "dense_vector": {
+        "knn_vector_768": {
           "match": "*_768_vec",
           "mapping": {
-            "type": "dense_vector",
-            "index": true,
-            "similarity": "cosine",
-            "dims": 768
+            "type": "knn_vector",
+            "dimension": 768
           }
         }
       },
       {
-        "dense_vector": {
+        "knn_vector_1024": {
           "match": "*_1024_vec",
           "mapping": {
-            "type": "dense_vector",
-            "index": true,
-            "similarity": "cosine",
-            "dims": 1024
+            "type": "knn_vector",
+            "dimension": 1024
           }
         }
       },
       {
-        "dense_vector": {
+        "knn_vector_1536": {
           "match": "*_1536_vec",
           "mapping": {
-            "type": "dense_vector",
-            "index": true,
-            "similarity": "cosine",
-            "dims": 1536
+            "type": "knn_vector",
+            "dimension": 1536
+          }
+        }
+      },
+      {
+        "knn_vector": {
+          "match": "*_3072_vec",
+          "mapping": {
+            "type": "knn_vector",
+            "dimension": 3072
           }
         }
       },
