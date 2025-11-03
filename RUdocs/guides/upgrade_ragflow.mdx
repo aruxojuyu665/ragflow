@@ -1,0 +1,87 @@
+---
+sidebar_position: 11
+slug: /upgrade_ragflow
+---
+
+# Обновление
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+Обновите RAGFlow до версии `nightly` или последнего опубликованного релиза.
+
+:::info NOTE
+Обновление RAGFlow само по себе *не* удалит ваши загруженные/исторические данные. Однако имейте в виду, что команда `docker compose -f docker/docker-compose.yml down -v` удалит тома контейнеров Docker, что приведёт к потере данных.
+:::
+
+## Обновление RAGFlow до `nightly` — самой последней протестированной Docker-версии
+
+`nightly` — это Docker-образ RAGFlow без моделей embedding (встраивания).
+
+Для обновления RAGFlow необходимо обновить **как** ваш код, **так и** Docker-образ:
+
+1. Клонируйте репозиторий
+
+   ```bash
+   git clone https://github.com/infiniflow/ragflow.git
+   ```
+
+2. Обновите файл **ragflow/docker/.env**:
+
+   ```bash
+   RAGFLOW_IMAGE=infiniflow/ragflow:nightly
+   ```
+
+3. Обновите Docker-образ RAGFlow и перезапустите RAGFlow:
+
+   ```bash
+   docker compose -f docker/docker-compose.yml pull
+   docker compose -f docker/docker-compose.yml up -d
+   ```
+
+## Обновление RAGFlow до последнего официально опубликованного релиза
+
+Для обновления RAGFlow необходимо обновить **как** ваш код, **так и** Docker-образ:
+
+1. Клонируйте репозиторий
+
+   ```bash
+   git clone https://github.com/infiniflow/ragflow.git
+   ```
+
+2. Переключитесь на последнюю официально опубликованную версию, например, `v0.21.1`:
+
+   ```bash
+   git checkout -f v0.21.1
+   ```
+
+3. Обновите файл **ragflow/docker/.env**:
+
+   ```bash
+   RAGFLOW_IMAGE=infiniflow/ragflow:v0.21.1
+   ```
+
+4. Обновите Docker-образ RAGFlow и перезапустите RAGFlow:
+
+   ```bash
+   docker compose -f docker/docker-compose.yml pull
+   docker compose -f docker/docker-compose.yml up -d
+   ```
+
+## Часто задаваемые вопросы
+
+### Нужно ли делать резервную копию моих наборов данных перед обновлением RAGFlow?
+
+Нет, не нужно. Обновление RAGFlow само по себе *не* удалит ваши загруженные данные или настройки наборов данных. Однако имейте в виду, что команда `docker compose -f docker/docker-compose.yml down -v` удалит тома контейнеров Docker, что приведёт к потере данных.
+
+### Обновление RAGFlow в офлайн-среде (без доступа к Интернету)
+
+1. В среде с доступом к Интернету скачайте необходимый Docker-образ.
+2. Сохраните Docker-образ в файл формата **.tar**.
+   ```bash
+   docker save -o ragflow.v0.21.1.tar infiniflow/ragflow:v0.21.1
+   ```
+3. Скопируйте файл **.tar** на целевой сервер.
+4. Загрузите файл **.tar** в Docker:
+   ```bash
+   docker load -i ragflow.v0.21.1.tar
+   ```

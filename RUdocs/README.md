@@ -1,0 +1,89 @@
+# Документация RAGFlow на русском языке
+
+Добро пожаловать в русскую документацию по RAGFlow!
+Этот документ содержит полную структуру и навигацию по всем переведенным файлам.
+
+## Структура документации
+
+- [configurations.md](configurations.md)
+- **contribution** - _Руководства по участию в разработке проекта._
+- [└── contributing.md](└── contributing.md)
+- **develop** - _Информация для разработчиков, желающих запустить и доработать RAGFlow._
+- [├── acquire_ragflow_api_key.md](├── acquire_ragflow_api_key.md)
+- [├── build_docker_image.mdx](├── build_docker_image.mdx)
+- [├── launch_ragflow_from_source.md](├── launch_ragflow_from_source.md)
+- **├── mcp** 
+- [│   ├── launch_mcp_server.md](│   ├── launch_mcp_server.md)
+- [│   ├── mcp_client_example.md](│   ├── mcp_client_example.md)
+- [│   └── mcp_tools.md](│   └── mcp_tools.md)
+- [└── switch_doc_engine.md](└── switch_doc_engine.md)
+- [faq.mdx](faq.mdx)
+- **guides** - _Подробные руководства по использованию различных функций RAGFlow._
+- **├── agent** 
+- **│   ├── agent_component_reference** 
+- [│   │   ├── agent.mdx](│   │   ├── agent.mdx)
+- [│   │   ├── await_response.mdx](│   │   ├── await_response.mdx)
+- [│   │   ├── begin.mdx](│   │   ├── begin.mdx)
+- [│   │   ├── categorize.mdx](│   │   ├── categorize.mdx)
+- [│   │   ├── chunker_title.md](│   │   ├── chunker_title.md)
+- [│   │   ├── chunker_token.md](│   │   ├── chunker_token.md)
+- [│   │   ├── code.mdx](│   │   ├── code.mdx)
+- [│   │   ├── execute_sql.md](│   │   ├── execute_sql.md)
+- [│   │   ├── indexer.md](│   │   ├── indexer.md)
+- [│   │   ├── iteration.mdx](│   │   ├── iteration.mdx)
+- [│   │   ├── message.mdx](│   │   ├── message.mdx)
+- [│   │   ├── parser.md](│   │   ├── parser.md)
+- [│   │   ├── retrieval.mdx](│   │   ├── retrieval.mdx)
+- [│   │   ├── switch.mdx](│   │   ├── switch.mdx)
+- [│   │   ├── text_processing.mdx](│   │   ├── text_processing.mdx)
+- [│   │   └── transformer.md](│   │   └── transformer.md)
+- [│   ├── agent_introduction.md](│   ├── agent_introduction.md)
+- **│   ├── best_practices** 
+- [│   │   └── accelerate_agent_question_answering.md](│   │   └── accelerate_agent_question_answering.md)
+- [│   ├── embed_agent_into_webpage.md](│   ├── embed_agent_into_webpage.md)
+- [│   └── sandbox_quickstart.md](│   └── sandbox_quickstart.md)
+- [├── ai_search.md](├── ai_search.md)
+- **├── chat** 
+- **│   ├── best_practices** 
+- [│   │   └── accelerate_question_answering.mdx](│   │   └── accelerate_question_answering.mdx)
+- [│   ├── implement_deep_research.md](│   ├── implement_deep_research.md)
+- [│   ├── set_chat_variables.md](│   ├── set_chat_variables.md)
+- [│   └── start_chat.md](│   └── start_chat.md)
+- **├── dataset** 
+- [│   ├── autokeyword_autoquestion.mdx](│   ├── autokeyword_autoquestion.mdx)
+- **│   ├── best_practices** 
+- [│   │   └── accelerate_doc_indexing.mdx](│   │   └── accelerate_doc_indexing.mdx)
+- [│   ├── configure_knowledge_base.md](│   ├── configure_knowledge_base.md)
+- [│   ├── construct_knowledge_graph.md](│   ├── construct_knowledge_graph.md)
+- [│   ├── enable_excel2html.md](│   ├── enable_excel2html.md)
+- [│   ├── enable_raptor.md](│   ├── enable_raptor.md)
+- [│   ├── extract_table_of_contents.md](│   ├── extract_table_of_contents.md)
+- [│   ├── run_retrieval_test.md](│   ├── run_retrieval_test.md)
+- [│   ├── select_pdf_parser.md](│   ├── select_pdf_parser.md)
+- [│   ├── set_metadata.md](│   ├── set_metadata.md)
+- [│   ├── set_page_rank.md](│   ├── set_page_rank.md)
+- [│   └── use_tag_sets.md](│   └── use_tag_sets.md)
+- [├── manage_files.md](├── manage_files.md)
+- [├── manage_users_and_services.md](├── manage_users_and_services.md)
+- **├── migration** 
+- [│   └── migrate_from_docker_compose.md](│   └── migrate_from_docker_compose.md)
+- **├── models** 
+- [│   ├── deploy_local_llm.mdx](│   ├── deploy_local_llm.mdx)
+- [│   └── llm_api_key_setup.md](│   └── llm_api_key_setup.md)
+- [├── run_health_check.md](├── run_health_check.md)
+- **├── team** 
+- [│   ├── join_or_leave_team.md](│   ├── join_or_leave_team.md)
+- [│   ├── manage_team_members.md](│   ├── manage_team_members.md)
+- [│   ├── share_agents.md](│   ├── share_agents.md)
+- [│   ├── share_chat_assistant.md](│   ├── share_chat_assistant.md)
+- [│   ├── share_knowledge_bases.md](│   ├── share_knowledge_bases.md)
+- [│   └── share_model.md](│   └── share_model.md)
+- [├── tracing.mdx](├── tracing.mdx)
+- [└── upgrade_ragflow.mdx](└── upgrade_ragflow.mdx)
+- [quickstart.mdx](quickstart.mdx)
+- **references** - _Справочные материалы, включая API и глоссарий._
+- [├── glossary.mdx](├── glossary.mdx)
+- [├── http_api_reference.md](├── http_api_reference.md)
+- [├── python_api_reference.md](├── python_api_reference.md)
+- [└── supported_models.mdx](└── supported_models.mdx)
+- [release_notes.md](release_notes.md)

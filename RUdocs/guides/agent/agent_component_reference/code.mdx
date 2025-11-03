@@ -1,0 +1,204 @@
+---
+sidebar_position: 13
+slug: /code_component
+---
+
+# Компонент Code
+
+Компонент, который позволяет пользователям интегрировать коды на Python или JavaScript в их Агент для динамической обработки данных.
+
+---
+
+## Сценарии
+
+Компонент **Code** необходим, когда требуется интегрировать сложную логику кода (Python или JavaScript) в ваш Агент для динамической обработки данных.
+
+## Предварительные требования
+
+### 1. Убедитесь, что gVisor установлен корректно
+
+Мы используем gVisor для изоляции выполнения кода от хост-системы. Пожалуйста, следуйте [официальному руководству по установке](https://gvisor.dev/docs/user_guide/install/), чтобы установить gVisor, убедившись, что ваша операционная система совместима, прежде чем продолжить.
+
+### 2. Убедитесь, что Sandbox установлен корректно
+
+RAGFlow Sandbox — это безопасный, подключаемый backend для выполнения кода. Он служит исполнителем кода для компонента **Code**. Пожалуйста, следуйте [инструкциям здесь](https://github.com/infiniflow/ragflow/tree/main/sandbox) для установки RAGFlow Sandbox.
+
+:::tip ПРИМЕЧАНИЕ
+Если ваш RAGFlow Sandbox не работает, обязательно ознакомьтесь с разделом [Устранение неполадок](#troubleshooting) в этом документе. Мы гарантируем, что он решает 99.99% проблем!
+:::
+
+### 3. (Опционально) Установите необходимые зависимости
+
+Если вам нужно импортировать собственные пакеты Python или JavaScript в Sandbox, пожалуйста, следуйте командам, приведённым в разделе [Как импортировать собственные пакеты Python или JavaScript в Sandbox?](#how-to-import-my-own-python-or-javascript-packages-into-sandbox), чтобы установить дополнительные зависимости.
+
+### 4. Включите настройки, специфичные для Sandbox, в RAGFlow
+
+Убедитесь, что все настройки, специфичные для Sandbox, включены в **ragflow/docker/.env**.
+
+### 5. Перезапустите сервис после внесения изменений
+
+Любые изменения в конфигурации или окружении *требуют* полного перезапуска сервиса для вступления в силу.
+
+## Конфигурации
+
+### Входные данные
+
+Вы можете указать несколько источников входных данных для компонента **Code**. Нажмите **+ Add variable** в разделе **Input variables**, чтобы добавить необходимые входные переменные.
+
+### Код
+
+В этом поле вы можете вводить и редактировать исходный код.
+
+:::danger ВАЖНО
+Если ваша реализация кода включает определённые переменные, будь то входные или выходные, убедитесь, что они также указаны в соответствующих разделах **Input** или **Output**.
+:::
+
+#### Пример кода на Python
+
+```Python 
+    def main(arg1: str, arg2: str) -> dict:
+        return {
+            "result": arg1 + arg2,
+        }
+```
+
+#### Пример кода на JavaScript
+
+```JavaScript
+
+    const axios = require('axios');
+    async function main(args) {
+      try {
+        const response = await axios.get('https://github.com/infiniflow/ragflow');
+        console.log('Body:', response.data);
+      } catch (error) {
+        console.error('Error:', error.message);
+      }
+    }
+```
+
+### Возвращаемые значения
+
+Здесь вы определяете выходные переменные компонента **Code**.
+
+:::danger ВАЖНО
+Если вы определяете выходные переменные здесь, убедитесь, что они также определены в вашей реализации кода; в противном случае их значения будут `null`. Ниже приведены два примера:
+
+
+![](https://raw.githubusercontent.com/infiniflow/ragflow-docs/main/images/set_object_output.jpg)
+
+![](https://raw.githubusercontent.com/infiniflow/ragflow-docs/main/images/set_nested_object_output.png)
+:::
+
+### Выходные данные
+
+Определённые выходные переменные будут автоматически заполнены здесь.
+
+## Устранение неполадок
+
+### `HTTPConnectionPool(host='sandbox-executor-manager', port=9385): Read timed out.`
+
+**Причина**  
+
+- Вы неправильно установили gVisor, и `runsc` не распознаётся как допустимый runtime Docker.
+- Вы не скачали необходимые базовые образы для раннеров, и ни один раннер не был запущен.
+
+**Решение**
+
+Для проблемы с gVisor:
+
+1. Установите [gVisor](https://gvisor.dev/docs/user_guide/install/).
+2. Перезапустите Docker.
+3. Выполните следующую команду для проверки:
+
+   ```bash
+   docker run --rm --runtime=runsc hello-world
+   ```
+
+Для проблемы с базовыми образами, скачайте необходимые образы:
+
+```bash
+docker pull infiniflow/sandbox-base-nodejs:latest
+docker pull infiniflow/sandbox-base-python:latest
+```
+
+### `HTTPConnectionPool(host='none', port=9385): Max retries exceeded.`
+
+**Причина**  
+
+`sandbox-executor-manager` не прописан в `/etc/hosts`.
+
+**Решение**  
+
+Добавьте новую запись в `/etc/hosts`:
+
+`127.0.0.1 es01 infinity mysql minio redis sandbox-executor-manager`
+
+### `Container pool is busy`
+
+**Причина**  
+
+Все раннеры в данный момент заняты выполнением задач.
+
+**Решение**  
+
+Попробуйте повторить попытку через некоторое время или увеличьте размер пула в конфигурации для повышения доступности и снижения времени ожидания.
+
+## Часто задаваемые вопросы
+
+### Как импортировать собственные пакеты Python или JavaScript в Sandbox?
+
+Чтобы импортировать ваши Python-пакеты, обновите **sandbox_base_image/python/requirements.txt** для установки необходимых зависимостей. Например, чтобы добавить пакет `openpyxl`, выполните следующие команды:
+
+```bash {4,6}
+(ragflow) ➜ ragflow/sandbox main ✓ pwd # убедитесь, что вы находитесь в правильной директории
+/home/infiniflow/workspace/ragflow/sandbox
+
+(ragflow) ➜ ragflow/sandbox main ✓ echo "openpyxl" >> sandbox_base_image/python/requirements.txt # добавьте пакет в файл requirements.txt
+
+(ragflow) ➜ ragflow/sandbox main ✗ cat sandbox_base_image/python/requirements.txt # убедитесь, что пакет добавлен
+numpy
+pandas
+requests
+openpyxl # вот он
+
+(ragflow) ➜ ragflow/sandbox main ✗ make # пересоберите docker-образ, эта команда пересоберёт образ и сразу запустит сервис. Для сборки только образа используйте `make build`.
+
+(ragflow) ➜ ragflow/sandbox main ✗ docker exec -it sandbox_python_0 /bin/bash # войдите в контейнер, чтобы проверить установку пакета
+
+
+# внутри контейнера
+nobody@ffd8a7dd19da:/workspace$ python # запустите python shell
+Python 3.11.13 (main, Aug 12 2025, 22:46:03) [GCC 12.2.0] on linux
+Type "help", "copyright", "credits" or "license" for more information.
+>>> import openpyxl # импортируйте пакет для проверки установки
+>>>
+# Всё в порядке!
+```
+
+Чтобы импортировать ваши JavaScript-пакеты, перейдите в `sandbox_base_image/nodejs` и используйте `npm` для установки необходимых пакетов. Например, чтобы добавить пакет `lodash`, выполните следующие команды:
+
+```bash
+(ragflow) ➜ ragflow/sandbox main ✓ pwd
+/home/infiniflow/workspace/ragflow/sandbox
+
+(ragflow) ➜ ragflow/sandbox main ✓ cd sandbox_base_image/nodejs
+
+(ragflow) ➜ ragflow/sandbox/sandbox_base_image/nodejs main ✓ npm install lodash 
+
+(ragflow) ➜ ragflow/sandbox/sandbox_base_image/nodejs main ✓ cd ../.. # вернитесь в корневую директорию sandbox
+
+(ragflow) ➜ ragflow/sandbox main ✗ make # пересоберите docker-образ, эта команда пересоберёт образ и сразу запустит сервис. Для сборки только образа используйте `make build`.
+
+(ragflow) ➜ ragflow/sandbox main ✗ docker exec -it sandbox_nodejs_0 /bin/bash # войдите в контейнер, чтобы проверить установку пакета
+
+# внутри контейнера
+nobody@dd4bbcabef63:/workspace$ npm list lodash # проверьте через npm list
+/workspace
+`-- lodash@4.17.21 extraneous
+
+nobody@dd4bbcabef63:/workspace$ ls node_modules | grep lodash # или проверьте через список node_modules
+lodash
+
+# Всё в порядке!
+```

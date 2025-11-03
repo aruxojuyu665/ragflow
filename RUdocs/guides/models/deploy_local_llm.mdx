@@ -1,0 +1,352 @@
+---
+sidebar_position: 2
+slug: /deploy_local_llm
+---
+
+# Развертывание локальных моделей
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+Развертывайте и запускайте локальные модели с помощью Ollama, Xinference или других фреймворков.
+
+---
+
+RAGFlow поддерживает развертывание моделей локально с использованием Ollama, Xinference, IPEX-LLM или jina. Если у вас есть локально развернутые модели для использования или вы хотите включить GPU или CUDA для ускорения инференса, вы можете интегрировать Ollama или Xinference в RAGFlow и использовать их в качестве локального «сервера» для взаимодействия с вашими локальными моделями.
+
+RAGFlow бесшовно интегрируется с Ollama и Xinference без необходимости дополнительной настройки окружения. Вы можете использовать их для развертывания двух типов локальных моделей в RAGFlow: чат-моделей и моделей для эмбеддингов (embedding models).
+
+:::tip NOTE
+Это руководство пользователя не предназначено для подробного описания установки или настройки Ollama или Xinference; основное внимание уделяется конфигурациям внутри RAGFlow. Для самой актуальной информации рекомендуется обращаться к официальным сайтам Ollama или Xinference.
+:::
+
+## Развертывание локальных моделей с использованием Ollama
+
+[Ollama](https://github.com/ollama/ollama) позволяет запускать открытые крупные языковые модели, развернутые локально. Он объединяет веса модели, конфигурации и данные в единый пакет, определяемый Modelfile, и оптимизирует установку и настройки, включая использование GPU.
+
+:::note
+- Для информации о загрузке Ollama смотрите [здесь](https://github.com/ollama/ollama?tab=readme-ov-file#ollama).
+- Для полного списка поддерживаемых моделей и вариантов смотрите [библиотеку моделей Ollama](https://ollama.com/library).
+:::
+
+### 1. Развертывание Ollama с помощью Docker
+
+Ollama можно [установить из бинарных файлов](https://ollama.com/download) или [развернуть с помощью Docker](https://hub.docker.com/r/ollama/ollama). Вот инструкция по развертыванию через Docker:
+
+```bash
+$ sudo docker run --name ollama -p 11434:11434 ollama/ollama
+> time=2024-12-02T02:20:21.360Z level=INFO source=routes.go:1248 msg="Listening on [::]:11434 (version 0.4.6)"
+> time=2024-12-02T02:20:21.360Z level=INFO source=common.go:49 msg="Dynamic LLM libraries" runners="[cpu cpu_avx cpu_avx2 cuda_v11 cuda_v12]"
+```
+
+Убедитесь, что Ollama слушает на всех IP-адресах:
+```bash
+$ sudo ss -tunlp | grep 11434
+> tcp   LISTEN 0      4096                  0.0.0.0:11434      0.0.0.0:*    users:(("docker-proxy",pid=794507,fd=4))
+> tcp   LISTEN 0      4096                     [::]:11434         [::]:*    users:(("docker-proxy",pid=794513,fd=4))
+```
+
+Загружайте модели по мере необходимости. Рекомендуется начать с `llama3.2` (чат-модель с 3 млрд параметров) и `bge-m3` (модель эмбеддингов с 567 млн параметров):
+```bash
+$ sudo docker exec ollama ollama pull llama3.2
+> pulling dde5aa3fc5ff... 100% ▕████████████████▏ 2.0 GB
+> success
+```
+
+```bash
+$ sudo docker exec ollama ollama pull bge-m3                 
+> pulling daec91ffb5dd... 100% ▕████████████████▏ 1.2 GB                                  
+> success 
+```
+
+### 2. Найдите URL Ollama и убедитесь, что он доступен
+
+- Если RAGFlow запущен в Docker, localhost внутри контейнера RAGFlow отображается как `host.docker.internal`. Если Ollama запущен на той же хост-машине, правильный URL для Ollama будет `http://host.docker.internal:11434/`, и следует проверить доступность Ollama изнутри контейнера RAGFlow командой:
+```bash
+$ sudo docker exec -it docker-ragflow-cpu-1 bash
+$ curl http://host.docker.internal:11434/
+> Ollama is running
+```
+
+- Если RAGFlow запущен из исходного кода и Ollama работает на той же хост-машине, проверьте доступность Ollama с хоста RAGFlow:
+```bash
+$ curl http://localhost:11434/
+> Ollama is running
+```
+
+- Если RAGFlow и Ollama работают на разных машинах, проверьте доступность Ollama с хоста RAGFlow:
+```bash
+$ curl http://${IP_OF_OLLAMA_MACHINE}:11434/
+> Ollama is running
+```
+
+### 3. Добавьте Ollama
+
+В RAGFlow нажмите на логотип в правом верхнем углу страницы **>** **Model providers** и добавьте Ollama в RAGFlow:
+
+![add ollama](https://github.com/infiniflow/ragflow/assets/93570324/10635088-028b-4b3d-add9-5c5a6e626814)
+
+
+### 4. Заполните основные настройки Ollama
+
+В появившемся окне заполните основные настройки Ollama:
+
+1. Убедитесь, что имя и тип модели совпадают с теми, что были загружены на шаге 1 (Развертывание Ollama с помощью Docker). Например, (`llama3.2` и `chat`) или (`bge-m3` и `embedding`).
+2. Введите базовый URL Ollama, например `http://host.docker.internal:11434`, `http://localhost:11434` или `http://${IP_OF_OLLAMA_MACHINE}:11434`.
+3. НЕОБЯЗАТЕЛЬНО: Включите переключатель под **Does it support Vision?** если ваша модель включает модель преобразования изображения в текст.
+
+:::caution WARNING
+Неправильные настройки базового URL вызовут следующую ошибку:
+```bash
+Max retries exceeded with url: /api/chat (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0xffff98b81ff0>: Failed to establish a new connection: [Errno 111] Connection refused'))
+```
+:::
+
+### 5. Обновите настройки системной модели
+
+Нажмите на логотип **>** **Model providers** **>** **System Model Settings** для обновления вашей модели:
+   
+- *Теперь вы должны видеть **llama3.2** в выпадающем списке под **Chat model**, и **bge-m3** в списке под **Embedding model**.*
+- _Если ваша локальная модель — модель эмбеддингов, она должна отображаться в списке **Embedding model**._
+
+### 6. Обновите конфигурацию чата
+
+Обновите вашу модель(и) соответствующим образом в **Chat Configuration**.
+
+## Развертывание локальной модели с использованием Xinference
+
+Xorbits Inference ([Xinference](https://github.com/xorbitsai/inference)) позволяет раскрыть полный потенциал передовых AI-моделей.
+
+:::note
+- Для информации об установке Xinference смотрите [здесь](https://inference.readthedocs.io/en/latest/getting_started/).
+- Для полного списка поддерживаемых моделей смотрите [Builtin Models](https://inference.readthedocs.io/en/latest/models/builtin/).
+:::
+
+Для развертывания локальной модели, например, **Mistral**, с использованием Xinference:
+
+### 1. Проверьте настройки брандмауэра
+
+Убедитесь, что брандмауэр вашей хост-машины разрешает входящие подключения на порт 9997.
+
+### 2. Запустите экземпляр Xinference
+
+```bash
+$ xinference-local --host 0.0.0.0 --port 9997
+```
+
+### 3. Запустите вашу локальную модель
+
+Запустите локальную модель (**Mistral**), заменив `${quantization}` на выбранный вами метод квантизации:
+
+```bash
+$ xinference launch -u mistral --model-name mistral-v0.1 --size-in-billions 7 --model-format pytorch --quantization ${quantization}
+```
+### 4. Добавьте Xinference
+
+В RAGFlow нажмите на логотип в правом верхнем углу страницы **>** **Model providers** и добавьте Xinference в RAGFlow:
+
+![add xinference](https://github.com/infiniflow/ragflow/assets/93570324/10635088-028b-4b3d-add9-5c5a6e626814)
+
+### 5. Заполните основные настройки Xinference
+
+Введите доступный базовый URL, например `http://<your-xinference-endpoint-domain>:9997/v1`. 
+> Для rerank модели используйте базовый URL `http://<your-xinference-endpoint-domain>:9997/v1/rerank`.
+
+### 6. Обновите настройки системной модели
+
+Нажмите на логотип **>** **Model providers** **>** **System Model Settings** для обновления вашей модели.
+   
+*Теперь вы должны видеть **mistral** в выпадающем списке под **Chat model**.*
+
+> Если ваша локальная модель — модель эмбеддингов, она должна отображаться в списке **Embedding model**.
+
+### 7. Обновите конфигурацию чата
+
+Обновите вашу чат-модель в разделе **Chat Configuration**:
+
+> Если ваша локальная модель — модель эмбеддингов, обновите её на странице конфигурации вашего набора данных.
+
+## Развертывание локальной модели с использованием IPEX-LLM
+
+[IPEX-LLM](https://github.com/intel-analytics/ipex-llm) — это библиотека PyTorch для запуска LLM на локальных процессорах Intel или GPU (включая iGPU или дискретные GPU, такие как Arc, Flex и Max) с низкой задержкой. Она поддерживает Ollama на системах Linux и Windows.
+
+Для развертывания локальной модели, например, **Qwen2**, с использованием IPEX-LLM-ускоренного Ollama:
+
+### 1. Проверьте настройки брандмауэра
+
+Убедитесь, что брандмауэр вашей хост-машины разрешает входящие подключения на порт 11434. Например:
+   
+```bash
+sudo ufw allow 11434/tcp
+```
+
+### 2. Запустите сервис Ollama с использованием IPEX-LLM
+
+#### 2.1 Установите IPEX-LLM для Ollama
+
+:::tip NOTE 
+IPEX-LLM поддерживает Ollama на системах Linux и Windows.
+:::
+
+Для подробной информации об установке IPEX-LLM для Ollama смотрите [Руководство по запуску llama.cpp с IPEX-LLM на Intel GPU](https://github.com/intel-analytics/ipex-llm/blob/main/docs/mddocs/Quickstart/llama_cpp_quickstart.md):
+- [Требования](https://github.com/intel-analytics/ipex-llm/blob/main/docs/mddocs/Quickstart/llama_cpp_quickstart.md#0-prerequisites)
+- [Установка IPEX-LLM cpp с бинарниками Ollama](https://github.com/intel-analytics/ipex-llm/blob/main/docs/mddocs/Quickstart/llama_cpp_quickstart.md#1-install-ipex-llm-for-llamacpp)
+
+*После установки вы должны создать Conda окружение, например, `llm-cpp`, для запуска команд Ollama с IPEX-LLM.*
+
+#### 2.2 Инициализация Ollama
+
+1. Активируйте Conda окружение `llm-cpp` и инициализируйте Ollama: 
+
+<Tabs
+  defaultValue="linux"
+  values={[
+    {label: 'Linux', value: 'linux'},
+    {label: 'Windows', value: 'windows'},
+  ]}>
+  <TabItem value="linux">
+  
+  ```bash
+  conda activate llm-cpp
+  init-ollama
+  ```
+  </TabItem>
+  <TabItem value="windows">
+
+  Выполните эти команды с *привилегиями администратора в Miniforge Prompt*:
+
+  ```cmd
+  conda activate llm-cpp
+  init-ollama.bat
+  ```
+  </TabItem>
+</Tabs>
+
+2. Если установленный пакет `ipex-llm[cpp]` требует обновления бинарных файлов Ollama, удалите старые бинарники и повторно инициализируйте Ollama с помощью `init-ollama` (Linux) или `init-ollama.bat` (Windows).
+   
+   *В вашей текущей директории появится символическая ссылка на Ollama, и вы сможете использовать этот исполняемый файл с обычными командами Ollama.*
+
+#### 2.3 Запуск сервиса Ollama
+
+1. Установите переменную окружения `OLLAMA_NUM_GPU` в значение `999`, чтобы все слои вашей модели запускались на Intel GPU; иначе некоторые слои могут по умолчанию работать на CPU.
+2. Для оптимальной производительности на Intel Arc™ A-Series Graphics с Linux OS (Kernel 6.2) установите следующую переменную окружения перед запуском сервиса Ollama:
+
+   ```bash 
+   export SYCL_PI_LEVEL_ZERO_USE_IMMEDIATE_COMMANDLISTS=1
+   ```
+3. Запустите сервис Ollama:
+
+<Tabs
+  defaultValue="linux"
+  values={[
+    {label: 'Linux', value: 'linux'},
+    {label: 'Windows', value: 'windows'},
+  ]}>
+  <TabItem value="linux">
+
+  ```bash
+  export OLLAMA_NUM_GPU=999
+  export no_proxy=localhost,127.0.0.1
+  export ZES_ENABLE_SYSMAN=1
+  source /opt/intel/oneapi/setvars.sh
+  export SYCL_CACHE_PERSISTENT=1
+
+  ./ollama serve
+  ```
+
+  </TabItem>
+  <TabItem value="windows">
+
+  Выполните следующую команду *в Miniforge Prompt*:
+
+  ```cmd
+  set OLLAMA_NUM_GPU=999
+  set no_proxy=localhost,127.0.0.1
+  set ZES_ENABLE_SYSMAN=1
+  set SYCL_CACHE_PERSISTENT=1
+
+  ollama serve
+  ```
+  </TabItem>
+</Tabs>
+
+
+:::tip NOTE
+Чтобы сервис Ollama принимал подключения со всех IP-адресов, используйте `OLLAMA_HOST=0.0.0.0 ./ollama serve` вместо просто `./ollama serve`.
+:::
+
+*В консоли появятся сообщения, подобные следующим:*
+
+![](https://llm-assets.readthedocs.io/en/latest/_images/ollama_serve.png)
+
+### 3. Загрузка и запуск модели Ollama
+
+#### 3.1 Загрузка модели Ollama
+
+С запущенным сервисом Ollama откройте новый терминал и выполните `./ollama pull <model_name>` (Linux) или `ollama.exe pull <model_name>` (Windows) для загрузки нужной модели, например, `qwen2:latest`:
+
+![](https://llm-assets.readthedocs.io/en/latest/_images/ollama_pull.png)
+
+#### 3.2 Запуск модели Ollama
+
+<Tabs
+  defaultValue="linux"
+  values={[
+    {label: 'Linux', value: 'linux'},
+    {label: 'Windows', value: 'windows'},
+  ]}>
+  <TabItem value="linux">
+
+  ```bash
+  ./ollama run qwen2:latest
+  ```
+  </TabItem>
+  <TabItem value="windows">
+
+  ```cmd
+  ollama run qwen2:latest
+  ```
+
+  </TabItem>
+</Tabs>
+
+### 4. Настройка RAGFlow
+
+Для включения Ollama с ускорением IPEX-LLM в RAGFlow необходимо также выполнить конфигурацию в RAGFlow. Шаги идентичны описанным в разделе *Развертывание локальной модели с использованием Ollama*:
+
+1. [Добавить Ollama](#4-добавьте-ollama)
+2. [Заполнить основные настройки Ollama](#5-заполните-основные-настройки-ollama)
+3. [Обновить настройки системной модели](#6-обновите-настройки-системной-модели)
+4. [Обновить конфигурацию чата](#7-обновите-конфигурацию-чата)
+
+## Развертывание локальной модели с использованием jina
+
+Для развертывания локальной модели, например, **gpt2**, с использованием jina:
+
+### 1. Проверьте настройки брандмауэра
+
+Убедитесь, что брандмауэр вашей хост-машины разрешает входящие подключения на порт 12345.
+
+```bash
+sudo ufw allow 12345/tcp
+```
+
+### 2. Установите пакет jina
+
+```bash
+pip install jina
+```
+
+### 3. Разверните локальную модель
+
+Шаг 1: Перейдите в директорию **rag/svr**.
+
+```bash
+cd rag/svr
+```
+
+Шаг 2: Запустите **jina_server.py**, указав либо имя модели, либо её локальную директорию:
+
+```bash
+python jina_server.py  --model_name gpt2
+```
+> Скрипт поддерживает только модели, загруженные с Hugging Face.
